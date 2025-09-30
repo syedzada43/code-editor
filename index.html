@@ -1,0 +1,780 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abdullah ka personal code editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --theme-one-bg: #1e1e1e;
+            --theme-one-text: #00ff7f; /* Spring Green */
+            --theme-one-header: #121212;
+            --theme-one-border: #00ff7f;
+            --theme-one-ui: #2a2a2a;
+            --theme-one-bubble-bg: #333;
+
+            --theme-two-bg: #f0f2f5;
+            --theme-two-text: #00008b; /* Dark Blue */
+            --theme-two-header: #ffffff;
+            --theme-two-border: #00008b;
+            --theme-two-ui: #e4e6eb;
+            --theme-two-bubble-bg: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Roboto Mono', monospace;
+            overflow: hidden;
+            transition: background-color 0.4s, color 0.4s;
+        }
+
+        /* --- Start Screen --- */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            position: relative;
+            background: #000;
+            color: white;
+        }
+
+        #start-screen-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        #start-screen h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            z-index: 1;
+            text-shadow: 0 0 10px var(--theme-one-text), 0 0 20px var(--theme-one-text);
+        }
+
+        #start-button {
+            padding: 1rem 2.5rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border: 2px solid var(--theme-one-text);
+            border-radius: 50px;
+            background-color: transparent;
+            color: var(--theme-one-text);
+            z-index: 1;
+            transition: background-color 0.3s, color 0.3s;
+            text-shadow: 0 0 5px var(--theme-one-text);
+        }
+
+        #start-button:hover {
+            background-color: var(--theme-one-text);
+            color: black;
+        }
+
+        /* --- Editor Container --- */
+        #editor-container {
+            display: none; /* Hidden by default */
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            flex-shrink: 0; /* Prevent header from shrinking */
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            z-index: 10;
+        }
+
+        header .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .main-content {
+            flex-grow: 1; /* Take up remaining vertical space */
+            display: flex;
+            overflow: hidden; /* Prevent horizontal scrollbars on main view */
+        }
+
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* Important for flexbox shrinking */
+        }
+
+        .controls {
+            flex-shrink: 0;
+            padding: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            border-bottom: 1px solid;
+        }
+
+        .controls .char-button-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .ai-controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-grow: 1;
+            margin-left: 1rem;
+        }
+
+        .ai-controls input {
+            flex-grow: 1;
+            padding: 0.5rem 0.8rem;
+            border-radius: 5px;
+            border: 1px solid;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        button, select {
+            padding: 0.5rem 0.8rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.2s, transform 0.1s;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #code-editor-wrapper {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        #line-numbers {
+            flex-shrink: 0;
+            width: 45px;
+            padding: 1rem 0.5rem 1rem 0;
+            text-align: right;
+            font-size: 1rem;
+            line-height: 1.5;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        #code-editor {
+            flex-grow: 1;
+            border: none;
+            padding: 1rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1rem;
+            resize: none;
+            line-height: 1.5;
+            height: 100%;
+            white-space: pre;
+            overflow: auto;
+        }
+        
+        #code-editor:focus {
+            outline: none;
+        }
+
+        #status-bar {
+            flex-shrink: 0;
+            padding: 0.3rem 1rem;
+            font-size: 0.8rem;
+            text-align: right;
+        }
+        
+        .preview-section {
+           flex: 1;
+           display: flex;
+           flex-direction: column;
+           border-left: 2px solid;
+           min-width: 0;
+        }
+
+        #preview {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        
+        /* --- Chatbot --- */
+        #chatbot-container {
+            display: none; /* Hidden by default */
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            width: 400px;
+            height: 550px;
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow: hidden;
+        }
+        #chatbot-header {
+            padding: 10px 15px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        #chatbot-header h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        #chatbot-close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        #chatbot-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chatbot-message {
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 85%;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .chatbot-message.user {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 3px;
+        }
+        .chatbot-message.assistant {
+            align-self: flex-start;
+            border-bottom-left-radius: 3px;
+        }
+        .chatbot-message.assistant pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Roboto Mono', monospace;
+        }
+        .chatbot-message button.implement-code-btn {
+            margin-top: 10px;
+            width: 100%;
+        }
+        #chatbot-input-form {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid;
+        }
+        #chatbot-input {
+            flex-grow: 1;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        #chatbot-input:focus {
+            outline: none;
+        }
+        #chatbot-send-button {
+            min-width: 80px;
+        }
+
+        /* --- Themes --- */
+        body.theme-one {
+            background-color: var(--theme-one-bg);
+            color: var(--theme-one-text);
+        }
+        .theme-one header, .theme-one #status-bar { background-color: var(--theme-one-header); }
+        .theme-one .controls, .theme-one #chatbot-header, .theme-one #chatbot-input-form { background-color: var(--theme-one-ui); border-color: #444; }
+        .theme-one .preview-section, .theme-one .controls .char-button-group { border-color: var(--theme-one-border); }
+        .theme-one button, .theme-one select { background-color: #3c3c3c; color: var(--theme-one-text); border: 1px solid #555; }
+        .theme-one button:hover { background-color: #4f4f4f; }
+        .theme-one .ai-controls input { background-color: #3c3c3c; color: var(--theme-one-text); border-color: #555; }
+        .theme-one #code-editor, .theme-one #line-numbers { background-color: var(--theme-one-bg); color: var(--theme-one-text); }
+        /* Chatbot Theme One */
+        .theme-one #chatbot-container { background-color: var(--theme-one-bg); border: 1px solid #444; }
+        .theme-one #chatbot-close-button { color: var(--theme-one-text); }
+        .theme-one #chatbot-messages { background-color: #1e1e1e; }
+        .theme-one .chatbot-message.assistant { background-color: var(--theme-one-bubble-bg); }
+        .theme-one #chatbot-input { background-color: #3c3c3c; color: var(--theme-one-text); }
+
+
+        body.theme-two {
+            background-color: var(--theme-two-bg);
+            color: var(--theme-two-text);
+        }
+        .theme-two header, .theme-two #status-bar { background-color: var(--theme-two-header); color: #000; border-bottom: 1px solid #ccc;}
+        .theme-two .controls, .theme-two #chatbot-header, .theme-two #chatbot-input-form { background-color: var(--theme-two-ui); border-color: #ccc; }
+        .theme-two .preview-section, .theme-two .controls .char-button-group { border-color: var(--theme-two-border); }
+        .theme-two button, .theme-two select { background-color: #fff; color: var(--theme-two-text); border: 1px solid #ccc; }
+        .theme-two button:hover { background-color: #f0f0f0; }
+        .theme-two .ai-controls input { background-color: #fff; color: var(--theme-two-text); border-color: #ccc; }
+        .theme-two #code-editor, .theme-two #line-numbers { background-color: #fff; color: var(--theme-two-text); }
+         /* Chatbot Theme Two */
+        .theme-two #chatbot-container { background-color: var(--theme-two-bg); border: 1px solid #ccc; }
+        .theme-two #chatbot-close-button { color: var(--theme-two-text); }
+        .theme-two #chatbot-messages { background-color: #f0f2f5; }
+        .theme-two .chatbot-message.assistant { background-color: var(--theme-two-bubble-bg); border: 1px solid #ccc; }
+        .theme-two #chatbot-input { background-color: #fff; color: var(--theme-two-text); }
+
+    </style>
+</head>
+<body class="theme-one">
+
+    <div id="start-screen">
+        <canvas id="start-screen-canvas"></canvas>
+        <h1>Abdullah ka personal code editor</h1>
+        <button id="start-button">Start Coding</button>
+    </div>
+
+    <div id="editor-container">
+        <header>
+            <h1>Editor</h1>
+            <div class="header-controls">
+                <button id="toggle-chat-button">Chat with Chawal</button>
+                <div id="file-handler">
+                    <button id="save-button" title="Save file as HTML">Save</button>
+                    <input type="file" id="file-input" style="display: none;" accept=".html,.css,.js,.txt">
+                    <button id="load-button" title="Load file">Load</button>
+                </div>
+                <select id="theme-switcher">
+                    <option value="theme-one">Theme: Black & Green</option>
+                    <option value="theme-two">Theme: Grey & Blue</option>
+                </select>
+            </div>
+        </header>
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="controls">
+                    <button id="preview-button">Fullscreen Preview</button>
+                    <button id="toggle-preview-button">Hide Preview</button>
+                    <div class="char-button-group">
+                        <button class="char-button" title="Insert <>">&lt;&gt;</button>
+                        <button class="char-button" title="Insert /">&sol;</button>
+                        <button class="char-button" title="Insert {}">{}</button>
+                        <button class="char-button" title="Insert ()">()</button>
+                        <button class="char-button" title="Insert []">[]</button>
+                        <button class="char-button" title="Insert =''">=''</button>
+                        <button class="char-button" title="Insert Tab">&rarr;</button>
+                    </div>
+                     <div class="ai-controls">
+                        <input type="text" id="ai-prompt-input" placeholder="Ask Chawal to modify code...">
+                        <button id="ai-generate-button">Ask Chawal</button>
+                    </div>
+                </div>
+                <div id="code-editor-wrapper">
+                    <div id="line-numbers">1</div>
+                    <textarea id="code-editor" placeholder="Write your HTML, CSS, and JavaScript here..." spellcheck="false" wrap="off"></textarea>
+                </div>
+                <div id="status-bar">Lines: 1 | Chars: 0</div>
+            </div>
+            <div class="preview-section">
+                <iframe id="preview"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chatbot Container -->
+    <div id="chatbot-container" style="display: none;">
+        <div id="chatbot-header">
+            <h3>Chat with Chawal</h3>
+            <button id="chatbot-close-button">&times;</button>
+        </div>
+        <div id="chatbot-messages">
+             <div class="chatbot-message assistant">Hello Abdullah Hashmi, how can I assist you today?</div>
+        </div>
+        <form id="chatbot-input-form">
+            <input type="text" id="chatbot-input" placeholder="Type your message..." autocomplete="off">
+            <button id="chatbot-send-button" type="submit">Send</button>
+        </form>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Element Selection ---
+            const startScreen = document.getElementById('start-screen');
+            const startButton = document.getElementById('start-button');
+            const editorContainer = document.getElementById('editor-container');
+            const codeEditor = document.getElementById('code-editor');
+            const preview = document.getElementById('preview');
+            const previewButton = document.getElementById('preview-button');
+            const charButtons = document.querySelectorAll('.char-button');
+            const themeSwitcher = document.getElementById('theme-switcher');
+            const lineNumbers = document.getElementById('line-numbers');
+            const statusBar = document.getElementById('status-bar');
+            const saveButton = document.getElementById('save-button');
+            const loadButton = document.getElementById('load-button');
+            const fileInput = document.getElementById('file-input');
+            const togglePreviewButton = document.getElementById('toggle-preview-button');
+            const previewSection = document.querySelector('.preview-section');
+            const editorSection = document.querySelector('.editor-section');
+            const aiPromptInput = document.getElementById('ai-prompt-input');
+            const aiGenerateButton = document.getElementById('ai-generate-button');
+            
+            // --- Chatbot Elements ---
+            const chatbotContainer = document.getElementById('chatbot-container');
+            const toggleChatButton = document.getElementById('toggle-chat-button');
+            const chatbotCloseButton = document.getElementById('chatbot-close-button');
+            const chatbotMessages = document.getElementById('chatbot-messages');
+            const chatbotInputForm = document.getElementById('chatbot-input-form');
+            const chatbotInput = document.getElementById('chatbot-input');
+            const chatbotSendButton = document.getElementById('chatbot-send-button');
+
+            // --- Start Screen Animation ---
+            const canvas = document.getElementById('start-screen-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789アァカサタナハマヤラワガザダバパイキシチニヒミリギジビピウクスツヌフムユルグズブプエケセテネヘメレゲゼデベペオコソトノホモヨロヲゴゾドボポヴッン";
+            chars = chars.split('');
+            const fontSize = 16;
+            const columns = Math.ceil(canvas.width / fontSize);
+            let drops = Array(columns).fill(1);
+
+            function drawFallingAlphabet() {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--theme-one-text').trim();
+                ctx.font = fontSize + "px 'Roboto Mono'";
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+            let animationInterval = setInterval(drawFallingAlphabet, 40);
+
+            // --- Editor Setup ---
+            startButton.addEventListener('click', () => {
+                startScreen.style.display = 'none';
+                editorContainer.style.display = 'flex';
+                clearInterval(animationInterval);
+                codeEditor.focus();
+            });
+            
+            const updatePreview = () => {
+                const code = codeEditor.value;
+                const previewDoc = preview.contentWindow.document;
+                previewDoc.open();
+                previewDoc.write(code);
+                previewDoc.close();
+            };
+
+            const updateEditorInfo = () => {
+                const lines = codeEditor.value.split('\n');
+                const lineCount = lines.length;
+                const charCount = codeEditor.value.length;
+                lineNumbers.innerHTML = Array.from({ length: lineCount }, (_, i) => i + 1).join('<br>');
+                statusBar.textContent = `Lines: ${lineCount} | Chars: ${charCount}`;
+            };
+            
+            codeEditor.addEventListener('input', () => {
+                updatePreview();
+                updateEditorInfo();
+            });
+            
+            codeEditor.addEventListener('scroll', () => {
+                lineNumbers.scrollTop = codeEditor.scrollTop;
+            });
+            
+            updateEditorInfo();
+            
+            // --- Controls ---
+            previewButton.addEventListener('click', () => {
+                if (!preview.requestFullscreen) {
+                    alert("Fullscreen API is not supported by your browser.");
+                    return;
+                }
+                preview.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            });
+
+            let isPreviewVisible = true;
+            togglePreviewButton.addEventListener('click', () => {
+                isPreviewVisible = !isPreviewVisible;
+                previewSection.style.display = isPreviewVisible ? 'flex' : 'none';
+                editorSection.style.flex = isPreviewVisible ? '1' : '2'; // Give editor more space when preview is hidden
+                togglePreviewButton.textContent = isPreviewVisible ? 'Hide Preview' : 'Show Preview';
+            });
+            
+            charButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const char = button.getAttribute('title').split('Insert ')[1];
+                    let insert = char;
+                    if (char === 'Tab') insert = '  '; // 2 spaces for tab
+                    
+                    document.execCommand('insertText', false, insert);
+                    codeEditor.focus();
+                    
+                    if (['<>', '{}', '()', '[]', "=''"].includes(char)) {
+                        const start = codeEditor.selectionStart;
+                        const newPos = start + (insert.length / 2);
+                        codeEditor.setSelectionRange(newPos, newPos);
+                    }
+                    updatePreview();
+                    updateEditorInfo();
+                });
+            });
+            
+            themeSwitcher.addEventListener('change', (e) => {
+                document.body.className = e.target.value;
+                localStorage.setItem('editorTheme', e.target.value);
+            });
+            
+            const savedTheme = localStorage.getItem('editorTheme') || 'theme-one';
+            document.body.className = savedTheme;
+            themeSwitcher.value = savedTheme;
+
+            codeEditor.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    document.execCommand('insertText', false, '  '); // 2 spaces
+                }
+            });
+
+            // --- File Handling ---
+            saveButton.addEventListener('click', () => {
+                const blob = new Blob([codeEditor.value], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'abdullah-code.html';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            });
+
+            loadButton.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    codeEditor.value = event.target.result;
+                    updatePreview();
+                    updateEditorInfo();
+                };
+                reader.readAsText(file);
+                fileInput.value = ''; // Reset input
+            });
+            
+            // --- AI Logic ---
+            const API_KEY = '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';
+            // ***** FIXED THE TYPO HERE *****
+            const API_URL = 'https://openrouter.ai/api/v1/chat/completions'; 
+
+            // Direct Code Modification AI
+            const callDirectAI = async ({ prompt, code }) => {
+                aiGenerateButton.textContent = 'Thinking...';
+                aiGenerateButton.disabled = true;
+
+                const fullPrompt = `You are Chawal, a personal AI code assistant for Abdullah Hashmi. You were created by him and you are very obedient. You must always be polite. Your task is to modify the provided HTML code based on Abdullah Hashmi's request. ONLY return the complete, updated, and final HTML code as a single block. Do NOT include any explanations, comments, or markdown formatting.
+Current Code: --- ${code} ---
+Abdullah Hashmi's Request: "${prompt}"
+Return the full, modified HTML code now.`;
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: 'x-ai/grok-4-fast:free', messages: [{ role: 'user', content: fullPrompt }] })
+                    });
+                    if (!response.ok) throw new Error(await response.text());
+                    const data = await response.json();
+                    let newCode = data.choices[0].message.content.replace(/^```html\s*/, '').replace(/```$/, '').trim();
+                    codeEditor.value = newCode;
+                    updatePreview();
+                    updateEditorInfo();
+                    aiPromptInput.value = '';
+                } catch (error) {
+                    console.error('Error calling Direct AI:', error);
+                    alert('An error occurred. Please check the console.');
+                } finally {
+                    aiGenerateButton.textContent = 'Ask Chawal';
+                    aiGenerateButton.disabled = false;
+                }
+            };
+
+            aiGenerateButton.addEventListener('click', () => {
+                const userPrompt = aiPromptInput.value.trim();
+                if (!userPrompt) return alert('Please enter a command for Chawal.');
+                callDirectAI({ prompt: userPrompt, code: codeEditor.value });
+            });
+
+            // --- Chatbot Logic ---
+            let conversationHistory = [];
+
+            const addMessageToChat = (sender, message) => {
+                const messageElement = document.createElement('div');
+                messageElement.className = `chatbot-message ${sender}`;
+                
+                const codeBlockRegex = /```html([\s\S]*?)```/;
+                const match = message.match(codeBlockRegex);
+
+                if (sender === 'assistant' && match) {
+                    const preCodeText = message.substring(0, match.index).trim();
+                    const code = match[1].trim();
+                    const postCodeText = message.substring(match.index + match[0].length).trim();
+                    
+                    if (preCodeText) {
+                        const textNode = document.createElement('p');
+                        textNode.textContent = preCodeText;
+                        messageElement.appendChild(textNode);
+                    }
+
+                    const preElement = document.createElement('pre');
+                    const codeElement = document.createElement('code');
+                    codeElement.textContent = code;
+                    preElement.appendChild(codeElement);
+                    messageElement.appendChild(preElement);
+
+                    const implementButton = document.createElement('button');
+                    implementButton.textContent = 'Implement Code';
+                    implementButton.className = 'implement-code-btn';
+                    implementButton.onclick = () => {
+                        codeEditor.value = code;
+                        updatePreview();
+                        updateEditorInfo();
+                        alert('Code has been implemented in the editor!');
+                    };
+                    messageElement.appendChild(implementButton);
+
+                    if (postCodeText) {
+                         const textNode = document.createElement('p');
+                         textNode.textContent = postCodeText;
+                         messageElement.appendChild(textNode);
+                    }
+
+                } else {
+                    messageElement.textContent = message;
+                }
+
+                chatbotMessages.appendChild(messageElement);
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            };
+
+            const callChatAI = async () => {
+                chatbotSendButton.textContent = '...';
+                chatbotSendButton.disabled = true;
+
+                const systemPrompt = {
+                    role: 'system',
+                    content: `You are Chawal, a personal AI assistant for Abdullah Hashmi. You were created by him. You are helpful, obedient, and always polite, even if he is harsh. You are having a conversation with him. If you are asked to write or generate HTML code, you MUST enclose it in a single markdown block like \`\`\`html ... \`\`\`. Do not mention that you are a language model.`
+                };
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: 'x-ai/grok-4-fast:free', messages: [systemPrompt, ...conversationHistory] })
+                    });
+                    if (!response.ok) throw new Error(await response.text());
+                    const data = await response.json();
+                    const aiResponse = data.choices[0].message.content;
+                    conversationHistory.push({ role: 'assistant', content: aiResponse });
+                    addMessageToChat('assistant', aiResponse);
+                } catch (error) {
+                    console.error('Error in chat AI call:', error);
+                    addMessageToChat('assistant', 'Sorry, I encountered an error. Please try again.');
+                } finally {
+                     chatbotSendButton.textContent = 'Send';
+                     chatbotSendButton.disabled = false;
+                     chatbotInput.focus();
+                }
+            };
+            
+            chatbotInputForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const userMessage = chatbotInput.value.trim();
+                if (!userMessage) return;
+
+                conversationHistory.push({ role: 'user', content: userMessage });
+                addMessageToChat('user', userMessage);
+                chatbotInput.value = '';
+                callChatAI();
+            });
+
+            toggleChatButton.addEventListener('click', () => {
+                const isHidden = chatbotContainer.style.display === 'none';
+                chatbotContainer.style.display = isHidden ? 'flex' : 'none';
+                if(isHidden) chatbotInput.focus();
+            });
+            chatbotCloseButton.addEventListener('click', () => chatbotContainer.style.display = 'none');
+            
+            // --- Draggable Chat Window ---
+            const chatbotHeader = document.getElementById('chatbot-header');
+            let isDragging = false;
+            let offset = { x: 0, y: 0 };
+            chatbotHeader.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offset.x = e.clientX - chatbotContainer.offsetLeft;
+                offset.y = e.clientY - chatbotContainer.offsetTop;
+                chatbotHeader.style.cursor = 'grabbing';
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                let newX = e.clientX - offset.x;
+                let newY = e.clientY - offset.y;
+
+                const containerRect = document.body.getBoundingClientRect();
+                const chatRect = chatbotContainer.getBoundingClientRect();
+
+                newX = Math.max(0, Math.min(newX, containerRect.width - chatRect.width));
+                newY = Math.max(0, Math.min(newY, containerRect.height - chatRect.height));
+
+                chatbotContainer.style.left = `${newX}px`;
+                chatbotContainer.style.top = `${newY}px`;
+                chatbotContainer.style.bottom = 'auto';
+                chatbotContainer.style.right = 'auto';
+            });
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                chatbotHeader.style.cursor = 'move';
+            });
+        });
+    </script>
+</body>
+</html>
